@@ -16,9 +16,12 @@ const pandaHeight = 50;
 const gravity = 2;
 const halfScreenHeight = canvas.height / 2; // 300px (50% of screen)
 
-// Load panda image
+// Load images
 const pandaImg = new Image();
 pandaImg.src = 'panda.png'; // Ensure panda.png is in your repo folder
+
+const grassImg = new Image();
+grassImg.src = 'grass.png'; // Ensure grass.png is in your repo folder
 
 // Panda class
 class Panda {
@@ -118,7 +121,6 @@ function checkStacking() {
                         break;
                     }
                 }
-                // If it’s a side collision, don’t stop it here; let it fall past
                 break; // Exit loop after first collision detection
             }
         }
@@ -138,6 +140,16 @@ function drawUI() {
 // Game loop
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grass at the bottom of the canvas, adjusted for camera
+    if (grassImg.complete) {
+        const grassHeight = grassImg.height; // Use natural height of grass.png
+        ctx.drawImage(grassImg, 0, canvas.height - grassHeight + cameraY, canvas.width, grassHeight);
+    } else {
+        // Fallback to green rectangle if grass isn’t loaded
+        ctx.fillStyle = 'green';
+        ctx.fillRect(0, canvas.height - 50 + cameraY, canvas.width, 50);
+    }
 
     // Update and draw falling panda
     if (!fallingPanda && pandas.length === 0) spawnPanda(); // Start with first panda
