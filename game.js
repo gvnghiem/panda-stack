@@ -16,12 +16,10 @@ const pandaHeight = 50;
 const gravity = 2;
 const halfScreenHeight = canvas.height / 2; // 300px (50% of screen)
 
+// Load panda image
 const pandaImg = new Image();
-pandaImg.src = 'panda.png';
-// In Panda.draw():
-draw() {
-    ctx.drawImage(pandaImg, this.x, this.y + cameraY, this.width, this.height);
-}
+pandaImg.src = 'panda.png'; // Ensure panda.png is in your repo folder
+
 // Panda class
 class Panda {
     constructor(x, y) {
@@ -32,9 +30,13 @@ class Panda {
     }
 
     draw() {
-        ctx.fillStyle = 'black'; // Replace with panda image later
-        ctx.fillRect(this.x, this.y + cameraY, this.width, this.height);
-        // To use an image: ctx.drawImage(pandaImg, this.x, this.y + cameraY, this.width, this.height);
+        if (pandaImg.complete) { // Check if image is loaded
+            ctx.drawImage(pandaImg, this.x, this.y + cameraY, this.width, this.height);
+        } else {
+            // Fallback to black rectangle if image isn’t loaded yet
+            ctx.fillStyle = 'black';
+            ctx.fillRect(this.x, this.y + cameraY, this.width, this.height);
+        }
     }
 
     update() {
@@ -82,25 +84,18 @@ function checkStacking() {
         for (let i = pandas.length - 1; i >= 0; i--) {
             const p = pandas[i];
             if (fallingPanda.y + fallingPanda.height >= p.y &&
-                fallingPanda.y + fallingPanda.height <= p.y + gravity && // Only stack if very close
                 fallingPanda.x + fallingPanda.width > p.x &&
                 fallingPanda.x < p.x + p.width) {
-                fallingPanda.y = p.y - fallingPanda.height;
-                // ... rest of stacking logic
-            } // Snap to top of stack
+                fallingPanda.y = p.y - fallingPanda.height; // Snap to top of stack
                 pandas.push(fallingPanda);
                 score++;
 
                 // Shift view down only if stack height increases and exceeds 50%
-                let targetCameraY = cameraY;
-                // In checkStacking(), replace cameraY += pandaHeight with:
+                const newStackHeight = getStackHeight();
                 if (newStackHeight > prevStackHeight && newStackHeight > halfScreenHeight) {
-                    targetCameraY += pandaHeight;
+                    cameraY += pandaHeight; // Shift down by one panda size
                 }
-                // In gameLoop(), add:
-                if (cameraY < targetCameraY) {
-                    cameraY += 2; // Adjust speed (e.g., 2px per frame)
-                }
+
                 fallingPanda = null;
                 spawnPanda();
                 landed = true;
