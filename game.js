@@ -23,6 +23,9 @@ pandaImg.src = 'panda.png'; // Ensure panda.png is in your repo folder
 const grassImg = new Image();
 grassImg.src = 'grass.png'; // Ensure grass.png is in your repo folder
 
+const skyImg = new Image();
+skyImg.src = 'sky.png'; // Ensure sky.png is in your repo folder
+
 // Panda class
 class Panda {
     constructor(x, y) {
@@ -141,9 +144,18 @@ function drawUI() {
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grass at the bottom of the canvas, adjusted for camera
+    // Draw sky background, stretched to fill canvas and shifted with camera
+    if (skyImg.complete) {
+        ctx.drawImage(skyImg, 0, -cameraY, canvas.width, canvas.height + cameraY);
+    } else {
+        // Fallback to light blue if sky isn’t loaded
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Draw grass at the bottom, adjusted for camera
     if (grassImg.complete) {
-        const grassHeight = grassImg.height; // Use natural height of grass.png
+        const grassHeight = grassImg.height;
         ctx.drawImage(grassImg, 0, canvas.height - grassHeight + cameraY, canvas.width, grassHeight);
     } else {
         // Fallback to green rectangle if grass isn’t loaded
