@@ -1,0 +1,15 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: url('bamboo-bg.jpg') no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#gameCanvas {
+    border: 5px solid black; /* Adds a black border */
+}
