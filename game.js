@@ -16,6 +16,12 @@ const pandaHeight = 50;
 const gravity = 2;
 const halfScreenHeight = canvas.height / 2; // 300px (50% of screen)
 
+const pandaImg = new Image();
+pandaImg.src = 'panda.png';
+// In Panda.draw():
+draw() {
+    ctx.drawImage(pandaImg, this.x, this.y + cameraY, this.width, this.height);
+}
 // Panda class
 class Panda {
     constructor(x, y) {
@@ -76,18 +82,25 @@ function checkStacking() {
         for (let i = pandas.length - 1; i >= 0; i--) {
             const p = pandas[i];
             if (fallingPanda.y + fallingPanda.height >= p.y &&
+                fallingPanda.y + fallingPanda.height <= p.y + gravity && // Only stack if very close
                 fallingPanda.x + fallingPanda.width > p.x &&
                 fallingPanda.x < p.x + p.width) {
-                fallingPanda.y = p.y - fallingPanda.height; // Snap to top of stack
+                fallingPanda.y = p.y - fallingPanda.height;
+                // ... rest of stacking logic
+            } // Snap to top of stack
                 pandas.push(fallingPanda);
                 score++;
 
                 // Shift view down only if stack height increases and exceeds 50%
-                const newStackHeight = getStackHeight();
+                let targetCameraY = cameraY;
+                // In checkStacking(), replace cameraY += pandaHeight with:
                 if (newStackHeight > prevStackHeight && newStackHeight > halfScreenHeight) {
-                    cameraY += pandaHeight; // Shift down by one panda size
+                    targetCameraY += pandaHeight;
                 }
-
+                // In gameLoop(), add:
+                if (cameraY < targetCameraY) {
+                    cameraY += 2; // Adjust speed (e.g., 2px per frame)
+                }
                 fallingPanda = null;
                 spawnPanda();
                 landed = true;
