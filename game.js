@@ -33,7 +33,7 @@ class Panda {
         if (pandaImg.complete) { // Check if image is loaded
             ctx.drawImage(pandaImg, this.x, this.y + cameraY, this.width, this.height);
         } else {
-            // Fallback to black rectangle if image isn’t loaded yet
+            // Fallback to black rectangle if image isn’t loaded
             ctx.fillStyle = 'black';
             ctx.fillRect(this.x, this.y + cameraY, this.width, this.height);
         }
@@ -41,7 +41,7 @@ class Panda {
 
     update() {
         if (this.y + this.height + cameraY < canvas.height) {
-            this.y += gravity;
+            this.y += gravity; // Only apply gravity, no collision here
         }
         // Wrap around borders
         if (this.x + this.width < 0) this.x = canvas.width - this.width;
@@ -64,7 +64,7 @@ function getStackHeight() {
     return bottomY - topY + pandaHeight; // Height based on unique positions
 }
 
-// Check if panda lands on stack or ground
+// Check collision and stacking
 function checkStacking() {
     let landed = false;
     let prevStackHeight = getStackHeight();
@@ -80,26 +80,46 @@ function checkStacking() {
             landed = true;
         }
     } else {
-        // Check stacking on top of existing pandas
+        // Check collision with stacked pandas
         for (let i = pandas.length - 1; i >= 0; i--) {
             const p = pandas[i];
-            if (fallingPanda.y + fallingPanda.height >= p.y &&
+            // Check for any collision (top or side)
+            if (fallingPanda.y + fallingPanda.height > p.y &&
+                fallingPanda.y < p.y + p.height &&
                 fallingPanda.x + fallingPanda.width > p.x &&
                 fallingPanda.x < p.x + p.width) {
-                fallingPanda.y = p.y - fallingPanda.height; // Snap to top of stack
-                pandas.push(fallingPanda);
-                score++;
+                // Only stack if it lands directly on top
+                if (fallingPanda.y + fallingPanda.height >= p.y &&
+                    fallingPanda.y + fallingPanda.height <= p.y + gravity && // Top contact
+                    fallingPanda.x + fallingPanda.width > p.x &&
+                    fallingPanda.x < p.x + p.width) {
+                    // Prevent overlap at the same height
+                    const wouldBeY = p.y - pandaHeight;
+                    const overlapAtSameHeight = pandas.some(other =>
+                        other !== p &&
+                        other.y === wouldBeY &&
+                        (fallingPanda.x < other.x + other.width && fallingPanda.x + fallingPanda.width > other.x)
+                    );
 
-                // Shift view down only if stack height increases and exceeds 50%
-                const newStackHeight = getStackHeight();
-                if (newStackHeight > prevStackHeight && newStackHeight > halfScreenHeight) {
-                    cameraY += pandaHeight; // Shift down by one panda size
+                    if (!overlapAtSameHeight) {
+                        fallingPanda.y = p.y - pandaHeight; // Snap to top of stack
+                        pandas.push(fallingPanda);
+                        score++;
+
+                        // Shift view down if stack height increases and exceeds 50%
+                        const newStackHeight = getStackHeight();
+                        if (newStackHeight > prevStackHeight && newStackHeight > halfScreenHeight) {
+                            cameraY += pandaHeight; // Shift down by one panda size
+                        }
+
+                        fallingPanda = null;
+                        spawnPanda();
+                        landed = true;
+                        break;
+                    }
                 }
-
-                fallingPanda = null;
-                spawnPanda();
-                landed = true;
-                break;
+                // If it’s a side collision, don’t stop it here; let it fall past
+                break; // Exit loop after first collision detection
             }
         }
     }
@@ -130,22 +150,24 @@ function gameLoop() {
     pandas.forEach(panda => panda.draw());
 
     // Check stacking or miss
-    if (fallingPanda && fallingPanda.y + fallingPanda.height + cameraY >= canvas.height) {
-        if (!checkStacking()) { // If it didn’t land on a panda (after first one)
-            lives--;
-            fallingPanda = null;
-            if (lives <= 0) {
-                alert(`Game Over! Score: ${score}`);
-                lives = 3;
-                score = 0;
-                pandas = [];
-                cameraY = 0; // Reset camera
-            } else {
-                spawnPanda();
+    if (fallingPanda) {
+        if (fallingPanda.y + fallingPanda.height + cameraY >= canvas.height) {
+            if (!checkStacking()) { // If it didn’t stack and hit the ground
+                lives--;
+                fallingPanda = null;
+                if (lives <= 0) {
+                    alert(`Game Over! Score: ${score}`);
+                    lives = 3;
+                    score = 0;
+                    pandas = [];
+                    cameraY = 0; // Reset camera
+                } else {
+                    spawnPanda();
+                }
             }
+        } else {
+            checkStacking(); // Check for stacking or collision mid-air
         }
-    } else if (fallingPanda) {
-        checkStacking();
     }
 
     drawUI();
