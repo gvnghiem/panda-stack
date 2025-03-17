@@ -6,11 +6,11 @@ canvas.width = 800;
 canvas.height = 600;
 
 // Game variables
-let pandas = []; // Array to store stacked pandas
+let pandas = [];
 let fallingPanda = null;
 let lives = 3;
 let score = 0;
-let cameraY = 0; // Camera offset for shifting view (positive = shift down)
+let cameraY = 0;
 const pandaWidth = 50;
 const pandaHeight = 50;
 const gravity = 2;
@@ -18,18 +18,18 @@ const halfScreenHeight = canvas.height / 2; // 300px (50% of screen)
 
 // Load images
 const pandaImg = new Image();
-pandaImg.src = 'panda.png'; // Ensure panda.png is in your repo folder
+pandaImg.src = 'panda.png';
 
 const grassImg = new Image();
-grassImg.src = 'grass.png'; // Ensure grass.png is in your repo folder
+grassImg.src = 'grass.png';
 
 const skyImg = new Image();
-skyImg.src = 'sky.png'; // Ensure sky.png is in your repo folder
+skyImg.src = 'sky.png';
 
 // Load sound effects
-const errorSound = new Audio('error.mp3'); // Played on fail
-const dropSound = new Audio('drop.mp3');   // Played on successful stack
-const pressSound = new Audio('press.mp3'); // Played on left/right movement
+const errorSound = new Audio('error.mp3');
+const dropSound = new Audio('drop.mp3');
+const pressSound = new Audio('press.mp3');
 
 // Panda class
 class Panda {
@@ -83,7 +83,7 @@ function checkStacking() {
             fallingPanda.y = canvas.height - pandaHeight - cameraY;
             pandas.push(fallingPanda);
             score++;
-            dropSound.play(); // Play drop sound on first stack
+            dropSound.play();
             fallingPanda = null;
             spawnPanda();
             landed = true;
@@ -110,7 +110,7 @@ function checkStacking() {
                         fallingPanda.y = p.y - pandaHeight;
                         pandas.push(fallingPanda);
                         score++;
-                        dropSound.play(); // Play drop sound on successful stack
+                        dropSound.play();
                         fallingPanda = null;
                         spawnPanda();
                         landed = true;
@@ -169,7 +169,7 @@ function gameLoop() {
         if (fallingPanda.y + fallingPanda.height + cameraY >= canvas.height) {
             if (!checkStacking()) {
                 lives--;
-                errorSound.play(); // Play error sound on fail
+                errorSound.play();
                 fallingPanda = null;
                 if (lives <= 0) {
                     alert(`Game Over! Score: ${score}`);
@@ -190,18 +190,52 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Move falling panda with arrow keys
+// Keyboard controls
 document.addEventListener('keydown', (e) => {
     if (fallingPanda) {
         if (e.key === 'ArrowLeft') {
             fallingPanda.x -= 10;
-            pressSound.play(); // Play press sound on left movement
+            pressSound.play();
         }
         if (e.key === 'ArrowRight') {
             fallingPanda.x += 10;
-            pressSound.play(); // Play press sound on right movement
+            pressSound.play();
         }
     }
+});
+
+// Touch controls for iOS/iPad
+let touchStartX = null;
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    console.log('Touch started at:', touchStartX);
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (fallingPanda && touchStartX !== null) {
+        const touch = e.touches[0];
+        const touchX = touch.clientX;
+        const deltaX = touchX - touchStartX;
+
+        if (deltaX > 10) { // Swipe right
+            fallingPanda.x += 10;
+            pressSound.play();
+            touchStartX = touchX; // Update start point to avoid jitter
+        } else if (deltaX < -10) { // Swipe left
+            fallingPanda.x -= 10;
+            pressSound.play();
+            touchStartX = touchX;
+        }
+    }
+});
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    touchStartX = null; // Reset on touch end
 });
 
 // Start the game
