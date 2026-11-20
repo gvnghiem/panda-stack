@@ -2,12 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#2c2468">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Swing, drop and stack sleepy pandas into the twilight sky. Playable on phone, tablet and desktop.">
     <title>Panda Stack</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon.svg">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="stage" aria-label="Panda Stack game"></canvas>
+
+    <!-- HUD -->
+    <header id="hud" hidden>
+        <div id="lives" aria-label="Lives"></div>
+        <div id="scoreBox" aria-live="polite">
+            <div id="score">0</div>
+            <div id="best">Best 0</div>
+        </div>
+        <div class="btns">
+            <button id="btnPause" class="icon-btn" aria-label="Pause">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+            </button>
+            <button id="btnSound" class="icon-btn" aria-label="Mute sound">
+                <svg id="icoOn" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="stroke" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+                <svg id="icoOff" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="stroke" d="M16.5 9.5l5 5m0-5l-5 5"/></svg>
+            </button>
+        </div>
+    </header>
+    <div id="combo" aria-hidden="true"></div>
+    <div id="toast" role="status"></div>
+
+    <!-- Title -->
+    <section id="title" class="overlay show">
+        <div class="card">
+            <img class="logo" src="icon.svg" alt="" width="96" height="96">
+            <h1>Panda <br>Stack</h1>
+            <p class="tag">Stack the sleepy pandas from sunset to the stars.</p>
+            <button id="btnPlay" class="primary">Play</button>
+            <p class="how">
+                <span class="touch">Tap anywhere to drop the panda</span>
+                <span class="mouse">Click, tap or press <kbd>Space</kbd> to drop</span>
+            </p>
+            <p class="how small">Land in the middle for a <b>Perfect</b> and build a combo. Lean too far and the tower topples!</p>
+            <p class="best-line" id="titleBest"></p>
+        </div>
+    </section>
+
+    <!-- Paused -->
+    <section id="paused" class="overlay">
+        <div class="card">
+            <h2>Paused</h2>
+            <button id="btnResume" class="primary">Resume</button>
+            <button id="btnQuit" class="ghost">Quit</button>
+        </div>
+    </section>
+
+    <!-- Game over -->
+    <section id="over" class="overlay">
+        <div class="card">
+            <h2>Tumble!</h2>
+            <div class="final" id="finalScore">0</div>
+            <p class="best-line" id="overBest"></p>
+            <div id="newBest" class="badge" hidden>New best!</div>
+            <button id="btnAgain" class="primary">Play again</button>
+        </div>
+    </section>
+
     <script src="game.js"></script>
 </body>
 </html>
