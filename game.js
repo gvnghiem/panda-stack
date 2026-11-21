@@ -156,11 +156,12 @@
             try {
                 actx = new (window.AudioContext || window.webkitAudioContext)();
                 master = actx.createGain();
-                master.gain.value = st.muted ? 0 : 0.55;
+                master.gain.value = st.muted ? 0 : 0.8;
                 master.connect(actx.destination);
             } catch (e) { actx = null; }
         }
         if (actx && actx.state === 'suspended') actx.resume();
+        loadSamples();
     }
     function tone(f1, f2, dur, type, vol, delay) {
         if (!actx || st.muted) return;
@@ -189,17 +190,62 @@
         src.start(t0);
     }
     const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.7, 1318.5, 1568];
+    // --- sample layer: your original mp3s, mixed in on top of the synthesised sounds ---
+    const bufs = {};
+    function loadSamples() {
+        if (!actx) return;
+        ['drop', 'error', 'press'].forEach((n) => {
+            if (n in bufs) return;
+            bufs[n] = null;
+            fetch(n + '.mp3').then((r) => r.arrayBuffer())
+                .then((a) => new Promise((res, rej) => actx.decodeAudioData(a, res, rej)))
+                .then((b) => { bufs[n] = b; })
+                .catch(() => { /* synth-only fallback */ });
+        });
+    }
+    function sample(name, rate, vol, delay) {
+        if (!actx || st.muted || !bufs[name]) return;
+        const src = actx.createBufferSource(); src.buffer = bufs[name]; src.playbackRate.value = rate || 1;
+        const g = actx.createGain(); g.gain.value = vol === undefined ? 0.8 : vol;
+        src.connect(g); g.connect(master); src.start(actx.currentTime + (delay || 0));
+    }
+    const squeak = (d, f) => tone(f || rand(800, 1100), (f || 900) * 1.5, 0.09, 'sine', 0.09, d);
+    const thud = (d, v) => { tone(190, 70, 0.16, 'triangle', v || 0.45, d); noise(0.09, (v || 0.45) * 0.6, 650, d); };
     const sfx = {
-        release() { tone(620, 380, 0.09, 'triangle', 0.12); },
-        land()    { tone(190, 80, 0.14, 'triangle', 0.4); noise(0.07, 0.25, 700); },
-        perfect(c) {
-            tone(190, 80, 0.14, 'triangle', 0.35); noise(0.05, 0.18, 700);
-            const n = PENTA[Math.min(c, PENTA.length) - 1];
-            tone(n, null, 0.28, 'sine', 0.28, 0.02);
-            tone(n * 2, null, 0.22, 'sine', 0.12, 0.02);
+        release() { sample('press', 1.5, 0.5); tone(620, 380, 0.09, 'triangle', 0.12); },
+        // normal stack: thud + woody knock + sample + a little squish
+        land() {
+            thud(0); tone(440, 250, 0.07, 'sine', 0.22, 0.01); sample('drop', 1, 0.8);
+            squeak(0.05, 760);
         },
-        miss()    { tone(340, 90, 0.5, 'sawtooth', 0.16); },
-        topple()  { noise(0.6, 0.5, 900); tone(130, 45, 0.5, 'triangle', 0.35); tone(340, 90, 0.5, 'sawtooth', 0.12); },
+        // perfect: same impact, brighter sample, rising chime that climbs with the combo
+        perfect(c) {
+            thud(0, 0.38); sample('drop', 1.18, 0.75);
+            const n = PENTA[Math.min(c, PENTA.length) - 1];
+            tone(n, null, 0.3, 'sine', 0.3, 0.02);
+            tone(n * 2, null, 0.24, 'sine', 0.13, 0.02);
+            tone(n * 3, null, 0.18, 'sine', 0.06, 0.05);
+            [0, 1, 2].forEach((i) => tone(PENTA[Math.min(c + i, PENTA.length - 1)] * 2, null, 0.12, 'triangle', 0.07, 0.1 + i * 0.06));
+        },
+        // miss: whoosh past the tower, then a sad two-note wah and the error sample
+        miss() {
+            sample('error', 1, 0.8);
+            tone(900, 160, 0.55, 'sine', 0.12);                    // falling whistle
+            noise(0.5, 0.18, 2200);                                 // air rush
+            tone(330, 300, 0.28, 'triangle', 0.22, 0.12);           // wah
+            tone(262, 220, 0.5, 'triangle', 0.22, 0.4);             // wah-wahhh
+            thud(0.6, 0.3);                                         // lands in the grass
+        },
+        // topple: rumble + crash, then a cascade of thuds and squeaks, one per fallen panda
+        topple(count) {
+            const n = Math.min(count || 1, 8);
+            sample('error', 0.75, 0.85);
+            noise(0.9, 0.55, 1500); noise(0.6, 0.35, 5000, 0.05);
+            tone(120, 38, 0.8, 'triangle', 0.4);
+            tone(340, 90, 0.5, 'sawtooth', 0.1);
+            for (let i = 0; i < n; i++) { thud(0.12 + i * 0.1, 0.3); squeak(0.1 + i * 0.1); }
+            tone(520, 200, 0.4, 'triangle', 0.14, 0.15 + n * 0.1);   // final "oof"
+        },
         life()    { [523, 659, 784, 1046].forEach((f, i) => tone(f, null, 0.18, 'triangle', 0.22, i * 0.07)); },
         over()    { [392, 330, 262, 196].forEach((f, i) => tone(f, f * 0.97, 0.3, 'triangle', 0.25, i * 0.16)); },
         milestone() { [523, 784, 1046].forEach((f, i) => tone(f, null, 0.3, 'sine', 0.2, i * 0.1)); },
@@ -764,7 +810,7 @@
             }));
             st.combo = 0; renderCombo();
             loseLife(removed.length > 1 ? 'Timber!' : 'Slipped!', block.x, surf + 40);
-            sfx.topple(); buzz([30, 30, 60]);
+            sfx.topple(removed.length); buzz([30, 30, 60]);
             kick(10);
             dust(block.x, surf, 8, 30);
             if (!survived) { st.swayV += dir * 40; spawnNext(); return; }
@@ -1023,7 +1069,7 @@
     });
     function toggleSound() {
         st.muted = !st.muted; store.set('muted', st.muted ? '1' : '0');
-        if (master) master.gain.value = st.muted ? 0 : 0.55;
+        if (master) master.gain.value = st.muted ? 0 : 0.8;
         renderSound(); if (!st.muted) { unlockAudio(); sfx.ui(); }
     }
     $('btnPlay').addEventListener('click', startGame);
@@ -1046,6 +1092,6 @@
     titleDecor();
     updateTitleBest();
     // expose a tiny hook for automated tests
-    window.__panda = { st, drop, swingPose, surface, startGame };
+    window.__panda = { st, bufs, drop, swingPose, surface, startGame };
     requestAnimationFrame((t) => { last = t; frame(t); });
 })();
